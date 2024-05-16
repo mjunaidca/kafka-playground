@@ -1,21 +1,25 @@
 from fastapi import FastAPI
 from confluent_kafka import Producer, Consumer, KafkaError
-
+import asyncio
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+from app.consumer import consume_kafka
 ###########
 # KAFKA SETUP CONFIG
 ###########
 
 # Kafka broker address and port - it's present in compose.yml
-bootstrap_servers = 'kafka:9094' # for internal communication between containers we use the service name and port
+# for internal communication between containers we use the service name and port
+bootstrap_servers = 'broker:19092'
 
 # You have to manually create this topic using Kafka UI
-topic = 'purchases'  
+topic = 'purchases'
 
 # Initialize the Kafka producer
 producer = Producer({'bootstrap.servers': bootstrap_servers})
 
 # A random group id for Consumer
-group_id = 'my-consumer-group'  
+group_id = 'my-consumer-group'
 
 # Initialize the Kafka consumer
 consumer_config = {
@@ -27,8 +31,13 @@ consumer_config = {
 consumer = Consumer(consumer_config)
 consumer.subscribe([topic])
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    asyncio.create_task(consume_kafka())
+    yield
+    
+app = FastAPI(lifespan=lifespan)
 
-app = FastAPI()
 
 @app.get("/")
 def read_root():
