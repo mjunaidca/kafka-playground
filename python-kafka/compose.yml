@@ -12,6 +12,17 @@ services:
       - "8000:8000"
     volumes:
       - ./microservice1:/code
+  
+  microservice2:
+    build:
+      context: ./microservice2
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - broker
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./microservice2:/code
       
   broker:
     image: apache/kafka:3.7.0
